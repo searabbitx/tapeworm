@@ -66,7 +66,7 @@ It tries to inject your shellcode into the code cave at the end of the `.text` s
 
 Then it alters a few first instructions of your PE's entry point (or the instructions at the address passed via the `--injection-address` switch) to jump to the shellcode.
 
-After the shellcode is executed registers and flags are restored, altered instructions are executed and then it jumps back to right after the entry point to continue program execution.
+After the shellcode is executed, registers and flags are restored, and execution is resumed.
 
 If you pass `--use-create-thread`, your shellcode will be ran in a new thread. Tapeworm will inject additional shellcode that runs `CreateThread`.
 
