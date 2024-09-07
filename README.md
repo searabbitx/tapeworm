@@ -2,10 +2,18 @@
 
 Tapeworm injects your shellcode into the code cave at the end of the `.text` section of your PE file.
 
+## Installation
+
+Just install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 ```
-usage: tapeworm [-h] -p PAYLOAD -i INPUT -o OUTPUT [options...]
+usage: ./tapeworm.py [-h] -p PAYLOAD -i INPUT -o OUTPUT [options...]
 
 options:
   -h, --help            show this help message and exit

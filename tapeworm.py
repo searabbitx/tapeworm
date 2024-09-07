@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pefile
 import argparse
 from pwn import *
