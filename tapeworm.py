@@ -2,6 +2,7 @@
 
 import pefile
 import argparse
+import os
 from pwn import *
 
 
@@ -15,15 +16,38 @@ def log_details(msg):
 
 class Args:
     def __init__(self):
+        def filepath(val):
+            if not os.path.exists(val):
+                msg = f"File '{val}' does not exist."
+                raise argparse.ArgumentTypeError(msg)
+            return val
+
+        def outputpath(val):
+            dirpath = os.path.dirname(val)
+            if not os.path.exists(dirpath):
+                msg = f"Directory '{dirpath}' does not exist."
+                raise argparse.ArgumentTypeError(msg)
+            if not os.path.isdir(dirpath):
+                msg = f"'{dirpath}' is not a directory."
+                raise argparse.ArgumentTypeError(msg)
+            return val
+
+        def hexstring(val):
+            try:
+                return int(val, 16)
+            except:
+                msg = f"'{val}' is not a hex number."
+                raise argparse.ArgumentTypeError(msg)
+
         parser = argparse.ArgumentParser(
             description='tapeworm - shellcode injector', prog='tapeworm')
         required = parser.add_argument_group('required named arguments')
         required.add_argument(
-            '-p', '--payload', help='shellcode file', required=True)
+            '-p', '--payload', help='shellcode file', required=True, type=filepath)
         required.add_argument(
-            '-i', '--input', help='input PE path', required=True)
+            '-i', '--input', help='input PE path', required=True, type=filepath)
         required.add_argument(
-            '-o', '--output', help='output PE path ', required=True)
+            '-o', '--output', help='output PE path ', required=True, type=outputpath)
 
         uct_help = ('Run the shellcode in a new thread. '
                     'Tapeworm will inject an additional shellcode that will run CreateThread. '
@@ -33,12 +57,13 @@ class Args:
 
         ia_help = ('RVA where the jump to the shellcode should be injected. '
                    'If not specified the entry point of the PE will be used.')
-        parser.add_argument('-a', '--injection-address', help=ia_help)
+        parser.add_argument('-a', '--injection-address',
+                            help=ia_help, type=hexstring)
 
         ec_help = ('Move the code cave start address EXTEND_CAVE bytes back. '
                    'This will result in EXTEND_CAVE last bytes of instructions in .text to be overwritten! '
                    'You may want to try this if the code cave is too small for your shellcode, but it will make the main program break at some unexpected point.')
-        parser.add_argument('-e', '--extend-cave', help=ec_help)
+        parser.add_argument('-e', '--extend-cave', help=ec_help, type=int)
         self.args = parser.parse_args()
 
     def shellcode_file(self):
@@ -54,16 +79,10 @@ class Args:
         return self.args.use_create_thread
 
     def extend_cave_by(self):
-        ec = self.args.extend_cave
-        if ec is None:
-            return None
-        return int(ec)
+        return self.args.extend_cave
 
     def injection_address(self):
-        try:
-            return int(self.args.injection_address, 16)
-        except:
-            return None
+        return self.args.injection_address
 
 
 class Address:
