@@ -1,6 +1,6 @@
 # tapeworm - shellcode injector
 
-Tapeworm injects your shellcode into the code cave at the end of the `.text` section of your PE file.
+Tapeworm injects your shellcode into the code cave at the end of the `.text` section of your PE file. The program will jump to your shellcode and resume execution afterwards. Tapeworm can start your shellcode in a new thread by injecting additional code that calls `CreateThread`.
 
 ## Installation
 
@@ -14,6 +14,14 @@ pip install -r requirements.txt
 
 ```
 usage: ./tapeworm.py [-h] -p PAYLOAD -i INPUT -o OUTPUT [options...]
+
+required named arguments:
+  -p PAYLOAD, --payload PAYLOAD
+                        shellcode file
+  -i INPUT, --input INPUT
+                        input PE path
+  -o OUTPUT, --output OUTPUT
+                        output PE path
 
 options:
   -h, --help            show this help message and exit
@@ -29,14 +37,6 @@ options:
                         This will result in EXTEND_CAVE last bytes of instructions in .text to be overwritten!
                         You may want to try this if the code cave is too small for your shellcode,
                         but it will make the main program break at some unexpected point.
-
-required named arguments:
-  -p PAYLOAD, --payload PAYLOAD
-                        shellcode file
-  -i INPUT, --input INPUT
-                        input PE path
-  -o OUTPUT, --output OUTPUT
-                        output PE path
 ```
 
 Example:
